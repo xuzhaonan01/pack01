@@ -129,7 +129,9 @@ function(declare, WidgetManager,lang, html, array, on, BaseWidget, Graphic,Query
           cleariconhander:function(){
             var widget =  WidgetManager.getInstance().activeWidget;
             var vue_ = widget.vueInstance;
-            widget.graphic_layer.clear();
+            var map_ = widget.map;
+            map_.graphics.clear();
+            // widget.graphic_layer.clear();
             vue_.collection = [];
           },
           locateposition:function(event){
@@ -144,7 +146,7 @@ function(declare, WidgetManager,lang, html, array, on, BaseWidget, Graphic,Query
 
               var center = gra.geometry;
               var map_ = WidgetManager.getInstance().map;
-              map_.centerAt(center);
+              map_.centerAndZoom(center, 7);
           },
           pagejump:function(event){
               var page = parseInt($.trim(event.currentTarget.innerHTML));
@@ -204,25 +206,29 @@ function(declare, WidgetManager,lang, html, array, on, BaseWidget, Graphic,Query
           },
           DrawFeature:function(graphicArr,from,count){
             var widget =  WidgetManager.getInstance().activeWidget;
-            widget.graphic_layer.clear();
+            var map_ = widget.map;
+            map_.graphics.clear();
+            // widget.graphic_layer.clear();
             var arr_ = graphicArr.slice(from,from + count);
             $(arr_).each(function(idx,gra){
-              widget.graphic_layer.add(gra); 
+              // widget.graphic_layer.add(gra); 
+              map_.graphics.add(gra);
             });
           }
         },
         watch:{
           collection:function(arr){
-              if(this.collection.length > 0){
-                  this.page.total = parseInt(this.collection.length / this.page.perpagecount) + 1;
-                  this.page.current = 1;
-                  var widget =  WidgetManager.getInstance();
-                  var vue_ = widget.activeWidget.vueInstance;
-                  vue_.DrawFeature(this.collection,0,this.page.perpagecount);
-              }else{
-                  this.page.total = 0;
-                  this.page.current = 0;
-              }
+            var widget =  WidgetManager.getInstance();
+            var vue_ = widget.activeWidget.vueInstance;
+            if(vue_.collection.length > 0){
+              vue_.page.total = parseInt(vue_.collection.length / vue_.page.perpagecount) + 1;
+              vue_.page.current = 1;
+                
+              vue_.DrawFeature(vue_.collection,0,vue_.page.perpagecount);
+            }else{
+              vue_.page.total = 0;
+              vue_.page.current = 0;
+            }
           }
         }
       });
