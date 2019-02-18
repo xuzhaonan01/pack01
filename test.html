@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>This page is used to complete the exam </title>
+    <!-- script for api -->
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>  
+    <script src="https://js.arcgis.com/4.10/"></script>
+    <!-- style for api -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.10/esri/css/main.css">
+    <!-- custom js script -->
+    <script>
+        var MapInfo = function(){
+
+        }
+
+        MapInfo.prototype =  {
+            // use as base map
+            DefaultBaseMapUrl:'https://services.arcgisonline.co.nz/arcgis/rest/services/Imagery/newzealand/MapServer',
+            // use as graphicslayer
+            NzBreweryMapUrl:'http://services.arcgis.com/XTtANUDT8Va4DLwI/ArcGIS/rest/services/NZBrewLocation/FeatureServer/0',
+            initExtent:{
+                xmin: -3489392.318121234,
+                ymin: 2845019.1581744337,
+                xmax: 6679382.260785056,
+                ymax: 8128346.553244411 ,
+                spatialReference: {
+                    wkid: 2193
+                }
+            },
+            //default zoom lvl
+            mapLvl:{
+                default:12,
+                zoomed:7
+            },
+        
+            symbols:{
+                //normally
+                commonMarkerSymbol : {
+                    type: "simple-marker", 
+                    style: "square",
+                    color: "red",
+                    size: "12px",
+                    outline: { 
+                        color: [ 245, 249, 0,0.8 ],
+                        width: 0
+                    }
+                },
+                //icon on focus
+                identifyedMarkerSymbol:{
+                    type: "simple-marker", 
+                    style: "square",
+                    color: "red",
+                    size: "12px",
+                    outline: { 
+                        color: [ 245, 249, 0,0.8 ],
+                        width: 3
+                    }
+                },
+                commonPolygonSymbol : {
+                    type: "simple-fill",
+                    color: [150, 175, 250,0.3],
+                    style: "solid",
+                    outline: { 
+                        color: "white",
+                        width: 1
+                    }
+                }
+            }
+        }
+
+        var mapInfo = new MapInfo();
+    </script>
+    <!-- custom css  -->
+    <style>
+        div{
+            margin: 0px,auto;
+            font-size: 0px;
+        }
+
+        div#container{
+            height: 1000px;
+            width:100%;
+            
+        }
+        div#viewDiv{
+            position:relative;
+            height: 100%;
+            width:  100%;
+            float: left;
+        }
+
+        #controlPanel{
+            position:relative;
+            height: 580px;
+            width: 300px;  
+            /* float: right;        */
+            background-color: #96affa;
+            color:#e6eeed;
+        }
+
+        #searchDiv{
+            height: 80px;
+            width:100%;
+            font-size: 0px;
+            text-align: center;
+            margin-top: 10px;
+            /* color:rgb(245, 249, 0) */
+        }
+
+        #searchBtn{
+            margin-left: 20px;
+        }
+
+        li.signal{
+            background-color: #07ad7c;
+            color:black;
+            
+        }
+        li.double{
+            background-color: #4b4d4d;
+            color:white;
+        }
+
+        li.itemselectionstat{
+            border: #1900f8;
+        }
+    </style>
+    <script>
+        var map,baseMap,view,layer,graphic_layer;
+        $("document").ready(function () {  
+            // load base map and widget
+            function loadbasemap() {  
+                require(['esri/Map',"esri/geometry/SpatialReference","esri/Basemap","esri/views/MapView",'esri/layers/TileLayer','esri/layers/GraphicsLayer',
+                'esri/widgets/ScaleBar','esri/Graphic',"esri/widgets/Search","esri/layers/FeatureLayer","dojo/domReady!"],
+                function(Map,SpatialReference,Basemap,MapView,TileLayer,GraphicsLayer,ScaleBar,Graphic,Search,FeatureLayer){
+                    /*
+                        Add Base map on Map Container As Requirement of Task 1 step 1
+                        (load the following WebMap into 2D View)
+                    */
+                    layer = new TileLayer({
+                        url:mapInfo.DefaultBaseMapUrl
+                    });
+
+                    baseMap = new Basemap({
+                        baseLayers: [layer],  
+                        title: "",  
+                        id: "myBasemap" 
+                    });
+                    
+                    map = new Map({
+                        basemap:baseMap
+                    });
+
+                    view = new MapView({
+                        container:'viewDiv',
+                        map:map,
+                        extends:mapInfo.initExtent,
+                        zoom:1,
+                        spatialReference: {
+                            wkid: 2193
+                        }
+                    });
+
+                    /*
+                        Add ScalaBar As Requirement of Task 1 step 2
+                        (Add the scala bar into your map)
+                    */
+                    var scaleBar = new ScaleBar({
+                        view: view
+                    });
+
+                    view.ui.add(scaleBar, {
+                        position: "bottom-left"
+                    });
+                    /*
+                        Add widget into the Map Container As Requirement of Task 2 step 1
+                        (Convert button to a custom widget)
+                    */
+                    view.ui.add("controlPanel", "top-right");
+
+                    graphic_layer = new GraphicsLayer();
+                    graphic_layer.id = 'glayer';
+                    graphic_layer.spatialReference = new SpatialReference(2193);
+                    map.add(graphic_layer,1);
+
+                    /*
+                        Add widget into the Map Container As Requirement of Task 2 step 1 Also
+                        just do the same things as custom widget by using esri existing widget
+                    */
+                    var searchWidget = new Search({
+                        view:view,
+                        allPlaceholder:'search by name',
+                        sources:[   
+                            {
+                                featureLayer: new FeatureLayer({
+                                    url: mapInfo.NzBreweryMapUrl,
+                                    popupTemplate: {
+                                    title: "Brewery:{Brewery}</br>Address:{FullAddress}</br>Comments:{Comments}",
+                                    overwriteActions: true
+                                    }
+                                }),
+                                searchFields: ["Brewery"],
+                                displayField: "Brewery",
+                                exactMatch: false,
+                                outFields: ["Brewery", "FullAddress", "Comments"]
+                            }
+                        ]
+                    });
+
+                    searchWidget.on("search-blur",function(event){
+                        graphic_layer.removeAll();
+                    });
+
+                    view.ui.add(searchWidget, {
+                        position: "top-left",
+                        index: 2
+                    });
+
+                });
+            };
+            loadbasemap();
+        });
+
+    </script>
+</head> 
+<body>
+    <div id="container">
+        <!-- map Container -->
+        <div id="viewDiv" >
+    
+        </div>
+        <!-- setup custome widget template in html-->
+        <div id='controlPanel' class="esri-widget">
+            <!-- search text input bar -->
+            <div id="searchDiv">
+                <p style="font:15px solid">search by Brewery Name</p>
+                <input id="searchInput" style="width:200px"  value="Brewery">
+                <button id="searchBtn" @click='querybeerhander'>Find</button>
+            </div>
+
+            <!-- result list  -->
+            <div id='list' style="height:400px;width:100%;background-color: rgb(230, 219, 219)">
+                <ol style="margin-left: -40px;margin-top:0px;height:380px">
+                    <li v-bind:style="item" v-bind:class="idx%2==0?signal:double" v-for="(ele,idx) in collection" v-if="collection.length != 0 && idx >= (page.current - 1)* page.perpagecount && idx < page.current * page.perpagecount " @click='locateposition($event)'  @mouseover='symbolpoint($event)' @mouseout='mouseOutItemHander($event)' >
+                        {{ele.attributes.Brewery}}
+                    </li>
+                </ol>
+            </div>
+
+            <!-- pager bar -->
+            <div id="pager">
+                <div style="text-align: center;width:100%">
+                    <ol style="font-size: 10px">
+                        <li v-bind:style="pageitem" v-for="idx in page.total" @click='pagejump($event)' @mouseover='mouseOnItemHander($event)' @mouseout='mouseOutItemHander($event)'>{{idx}}</li>
+                    </ol>
+                    <p style="font-size: 15px;color: black;">page {{page.current}} of {{page.total}}</p>   
+                </div>             
+                <div>
+                    <button id="clearBtn" @click='cleariconhander' style="float: right;margin-right:50px">clear map</button> 
+                </div>
+                    
+            </div>
+        </div>
+    </div>  
+</body>
+<!-- vue script here -->
+<script>
+    // vue binding data
+    var cp = {
+        data:{
+            collection:[],
+            page:{
+                total:0,
+                current:1,
+                perpagecount:8
+            },
+            mouse:{
+                mouseonitem:false,
+            },
+            item:{
+                listStyle:'none',
+                cursor: 'pointer',
+                height: '50px',
+                lineHeight: '50px',
+                margin: '0px',
+                textAlign: 'center',
+                fontSize:'15px'
+            },
+            pageitem:{
+                display: 'inline-box',
+                listStyle: 'none',
+                margin: '0px',
+                float: 'left',
+                backgroundColor:'#0059ff',
+                color:'#e6eeed',
+                width:'20px',
+                textAlign:'center',
+                cursor:'pointer',
+                textDecoration:'underline',
+                fontWeight:'bold',
+                marginRight:'5px'
+
+            },
+            signal:'signal',
+            double:'double'
+        },
+        methods:{
+            cleariconhander:function(){
+                require(['esri/geometry/Extent'],function(Extent){                 
+                    view.extent = new Extent(mapInfo.initExtent);
+                    view.zoom = 2;
+                });
+                graphic_layer.removeAll();
+                this.collection = [];
+            },
+            locateposition:function(event){
+                var gra = {};
+                var name = $.trim(event.currentTarget.innerHTML);
+
+                for(var i = 0;i < this.collection.length;i++){
+                    if(this.collection[i].attributes.Brewery == name){
+                        gra = this.collection[i];                       
+                    }
+                }
+
+                var center = gra.geometry;
+                view.zoom = mapInfo.mapLvl.zoomed;
+                view.center = center;
+            },
+            querybeerhander:function (condition) {   
+                
+                var arr = [];
+                require(['esri/Map',"esri/tasks/QueryTask", "esri/tasks/support/Query",'esri/layers/GraphicsLayer','esri/Graphic','esri/symbols/SimpleMarkerSymbol','esri/geometry/Extent'],
+                function (Map,QueryTask,Query,GraphicsLayer,Graphic,SimpleMarkerSymbol,Extent) {  
+                    view.extent = new Extent(mapInfo.initExtent);
+                    view.zoom = 2;
+                    var url = mapInfo.NzBreweryMapUrl;
+                    var searchOpt = "Brewery like '%" + $("#searchInput").val() + "%'";
+
+                    var queryTask = new QueryTask({
+                        url: url
+                    });
+
+                    var query = new Query();
+                    query.returnGeometry = true;
+                    query.outFields = ["*"];
+                    query.where = searchOpt; 
+                    queryTask.execute(query).then(function(results){
+                        
+                        var res = results.features;
+                        var symbol_ = mapInfo.symbols.commonMarkerSymbol;
+
+                        $.each(res,function(idx,val){
+                            var gra = new Graphic({
+                                geometry:val.geometry,
+                                symbol:symbol_,
+                                attributes: val.attributes
+                            });                        
+                            arr.push(gra);        
+                                     
+                        });                       
+                    });
+                });
+                this.collection = arr;
+            },
+            pagejump:function(event){
+                var page = parseInt($.trim(event.currentTarget.innerHTML));
+                var par = {
+                    graphicArr:this.collection,
+                    from: (this.page.perpagecount * (page - 1) + 1),
+                    count: this.page.perpagecount
+                };
+                DrawFeature(par.graphicArr,par.from,par.count);
+                this.page.current = page;
+            },
+            symbolpoint:function(event){
+                var gra = {};
+                var li_ = event.currentTarget;
+                var name = $.trim(li_.innerHTML);
+
+                for(var i = 0;i < this.collection.length;i++){
+                    if(this.collection[i].attributes.Brewery == name){
+                        gra = this.collection[i];
+                        
+                    }else{
+                        this.collection[i].symbol = mapInfo.symbols.commonMarkerSymbol;
+                    }
+                }
+                gra.symbol = mapInfo.symbols.identifyedMarkerSymbol; 
+                
+                li_.style.opacity = "0.7";  
+            },
+            mouseOnItemHander:function(event){              
+                var li_ = event.currentTarget;
+                li_.style.opacity = "0.7";             
+            },
+            mouseOutItemHander:function(event){
+                var li_ = event.currentTarget;
+                li_.style.opacity = "1";
+            }
+        },
+        watch:{
+            collection:function(arr){
+                if(this.collection.length > 0){
+                    this.page.total = parseInt(this.collection.length / this.page.perpagecount) + 1;
+                    this.page.current = 1;
+                    DrawFeature(this.collection,0,this.page.perpagecount);
+                }else{
+                    this.page.total = 0;
+                    this.page.current = 0;
+                }
+            }
+        }
+    };
+
+    var controlPanelControler = new Vue({
+        el:'#controlPanel',
+        data:cp.data,
+        methods:cp.methods,
+        watch: cp.watch
+    })
+
+    var DrawFeature = function(graphicArr,from,count){
+        graphic_layer.removeAll();
+        var arr_ = graphicArr.slice(from,from + count);
+        $(arr_).each(function(idx,gra){
+            graphic_layer.graphics.add(gra); 
+        });
+    }
+</script>
+</html>
