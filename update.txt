@@ -1,0 +1,4 @@
+1. make task1 and task2 into separate part.
+2. load with web map resourcec
+3. query input can ignore case.
+4. implement task2 by typescript framework.
