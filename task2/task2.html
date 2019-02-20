@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Find Beer</title>
+    <script>
+        var locationPath = location.pathname.replace(/\/[^\/]+$/, "");
+        window.dojoConfig = {
+            packages: [
+                {
+                    name: "gts",
+                    location: locationPath
+                }
+            ]
+        };
+    </script>
+    <style>
+        div{
+            margin: 0px,auto;
+            font-size: 0px;
+        }
+
+        div#container{
+            height: 1000px;
+            width:100%;  
+        }
+        div#viewDiv{
+            position:relative;
+            height: 100%;
+            width:  100%;
+            float: left;
+        }
+
+        #controlPanel{
+            position:relative;
+            height: 580px;
+            width: 300px;  
+            /* float: right;        */
+            background-color: #96affa;
+            color:#e6eeed;
+        }
+
+        #searchDiv{
+            height: 80px;
+            width:100%;
+            font-size: 0px;
+            text-align: center;
+            margin-top: 10px;
+            /* color:rgb(245, 249, 0) */
+        }
+
+        #searchBtn{
+            margin-left: 20px;
+        }
+
+        li.signal{
+            list-style:none;
+            cursor: pointer;
+            height: 50px;
+            line-height: 50px;
+            margin: 0px;
+            text-align: center;
+            font-size:15px;
+            background-color: #07ad7c;
+            color:black;
+            
+        }
+        li.double{
+            list-style:none;
+            cursor: pointer;
+            height: 50px;
+            line-height: 50px;
+            margin: 0px;
+            text-align: center;
+            font-size:15px;
+            background-color: #4b4d4d;
+            color:white;
+        }
+        li.pageitem{
+            display: inline-box;
+            list-style: none;
+            margin: 0px;
+            float: left;
+            background-color:#0059ff;
+            color:#e6eeed;
+            width:20px;
+            text-align:center;
+            cursor:pointer;
+            text-decoration:underline;
+            font-weight:bold;
+            margin-right:5px;
+        }
+
+        li.itemselectionstat{
+            border: #1900f8;
+        }
+    </style>
+    <script>
+        var MapInfo = function(){
+
+        }
+        // some default value of map
+        MapInfo.prototype =  {
+            NzBreweryMapUrl:'http://services.arcgis.com/XTtANUDT8Va4DLwI/ArcGIS/rest/services/NZBrewLocation/FeatureServer/0',
+            initExtent:{
+                xmin: -3489392.318121234,
+                ymin: 2845019.1581744337,
+                xmax: 6679382.260785056,
+                ymax: 8128346.553244411 ,
+                spatialReference: {
+                    wkid: 2193
+                }
+            },
+            //default zoom lvl
+            mapLvl:{
+                default:12,
+                zoomed:7
+            },
+        
+            symbols:{
+                //normally
+                commonMarkerSymbol : {
+                    type: "simple-marker", 
+                    style: "square",
+                    color: "red",
+                    size: "15px",
+                    outline: { 
+                        color: [ 245, 249, 0,0.8 ],
+                        width: 0
+                    }
+                },
+                //icon on focus
+                identifyedMarkerSymbol:{
+                    type: "simple-marker", 
+                    style: "square",
+                    color: "red",
+                    size: "15px",
+                    outline: { 
+                        color: [ 245, 249, 0,0.8 ],
+                        width: 3
+                    }
+                }
+            }
+        }
+
+        var mapInfo = new MapInfo();
+    </script>
+    <!-- script for api -->
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="https://js.arcgis.com/4.10/"></script>
+    <!-- style for api -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.10/esri/css/main.css">
+    
+    <script>
+        var map,view,graphic_layer,findbeerWidget;
+        $("document").ready(function () {   
+            require([
+                "gts/FindBeerWidget",
+                "esri/WebMap","esri/geometry/SpatialReference",
+                "esri/views/MapView","esri/layers/GraphicsLayer",
+                "esri/widgets/ScaleBar"],
+            function(FindBeerWidget,WebMap,SpatialReference,MapView,GraphicsLayer,ScaleBar){
+                var map = new WebMap({
+                    portalItem: {   
+                        // NZMap and Brewery web map
+                        id: "1d52abc39f2f412bb3ff0e6407796d7c"
+                    }
+                });
+
+                view = new MapView({
+                    map:map,
+                    container:'viewDiv',                       
+                    // zoom:2
+                    extends:mapInfo.initExtent,
+                    spatialReference: {
+                        wkid: 2193
+                    }
+                });
+                //binding widget 1
+                var scaleBar = new ScaleBar({
+                    view: view
+                });
+
+                view.ui.add(scaleBar, {
+                    position: "bottom-left"
+                });
+                
+                // layer to render: search item
+                graphic_layer = new GraphicsLayer();
+                graphic_layer.id = 'glayer';
+                graphic_layer.spatialReference = new SpatialReference(2193);
+                map.add(graphic_layer,1);
+
+                //binding widget 2
+                findbeerWidget = new FindBeerWidget({
+                    view: view,
+                    extent:mapInfo.initExtent,
+                    graphicsLayer:graphic_layer,
+                    simpleMarkerSymbol:mapInfo.symbols.commonMarkerSymbol,
+                    identifyMarkerSymbol:mapInfo.symbols.identifyedMarkerSymbol,
+                    container:searchDiv
+                });
+
+                findbeerWidget.BindUrl(mapInfo.NzBreweryMapUrl);   
+                view.ui.add(findbeerWidget, "top-right");
+            });
+
+        });
+
+    </script>
+</head>
+<style>
+
+</style>
+<body>
+    <div id="container">
+        <!-- map Container -->
+        <div id="viewDiv" >
+            <!-- search bar -->
+            <div id="searchDiv"></div>
+        </div>
+    </div>  
+</body>
+</html>

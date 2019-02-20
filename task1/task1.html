@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Find The Beer</title>
+    <!-- script for api -->
+    <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>  
+    <script src="https://js.arcgis.com/4.10/"></script>
+    <!-- style for api -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.10/esri/css/main.css">
+    <!-- custom css  -->
+    <style>
+        div{
+            margin: 0px,auto;
+            font-size: 0px;
+        }
+
+        div#container{
+            height:1000px;
+            width:100%;
+            
+        }
+        div#viewDiv{
+            height: 100%;
+            width:  100%;
+            background-color: #e0e2e6;
+        }
+
+        #searchBtn{
+            margin-left: 20px;
+        }
+
+    </style>
+    <script>
+        var MapInfo = function(){
+
+        }
+
+        MapInfo.prototype =  {
+            // use as base map
+            DefaultBaseMapUrl:'https://services.arcgisonline.co.nz/arcgis/rest/services/Imagery/newzealand/MapServer',
+            // use as graphicslayer
+            NzBreweryMapUrl:'http://services.arcgis.com/XTtANUDT8Va4DLwI/ArcGIS/rest/services/NZBrewLocation/FeatureServer/0',
+            initExtent:{
+                xmin: -3489392.318121234,
+                ymin: 2845019.1581744337,
+                xmax: 6679382.260785056,
+                ymax: 8128346.553244411 ,
+                spatialReference: {
+                    wkid: 2193
+                }
+            },
+            //default zoom lvl
+            mapLvl:{
+                default:12,
+                zoomed:7
+            },
+        
+            symbols:{
+                //normally
+                commonMarkerSymbol : {
+                    type: "simple-marker", 
+                    style: "square",
+                    color: "red",
+                    size: "12px",
+                    outline: { 
+                        color: [ 245, 249, 0,0.8 ],
+                        width: 0
+                    }
+                },
+                //icon on focus
+                identifyedMarkerSymbol:{
+                    type: "simple-marker", 
+                    style: "square",
+                    color: "red",
+                    size: "12px",
+                    outline: { 
+                        color: [ 245, 249, 0,0.8 ],
+                        width: 3
+                    }
+                },
+                commonPolygonSymbol : {
+                    type: "simple-fill",
+                    color: [150, 175, 250,0.3],
+                    style: "solid",
+                    outline: { 
+                        color: "white",
+                        width: 1
+                    }
+                }
+            }
+        }
+
+        var mapInfo = new MapInfo();
+    </script>
+    <script>
+        var map,baseMap,view,layer,graphic_layer;
+        $("document").ready(function () {  
+
+            function loadbasemap() {  
+                require(["esri/WebMap","esri/geometry/SpatialReference","esri/Basemap","esri/views/MapView",'esri/layers/TileLayer','esri/layers/GraphicsLayer',
+                'esri/widgets/ScaleBar','esri/Graphic',"esri/widgets/Search","esri/layers/FeatureLayer","dojo/domReady!"],
+                function(WebMap,SpatialReference,Basemap,MapView,TileLayer,GraphicsLayer,ScaleBar,Graphic,Search,FeatureLayer){
+                    var map = new WebMap({
+                        portalItem: {   
+                            id: "1d52abc39f2f412bb3ff0e6407796d7c"
+                        }
+                    });
+
+                    view = new MapView({
+                        map:map,
+                        container:'viewDiv',                       
+                        // zoom:2
+                        extends:mapInfo.initExtent,
+                        spatialReference: {
+                            wkid: 2193
+                        }
+                    });
+
+                    var scaleBar = new ScaleBar({
+                        view: view
+                    });
+
+                    view.ui.add(scaleBar, {
+                        position: "bottom-left"
+                    });
+
+                    graphic_layer = new GraphicsLayer();
+                    graphic_layer.id = 'glayer';
+                    graphic_layer.spatialReference = new SpatialReference(2193);
+                    map.add(graphic_layer,1);
+                });
+            };
+            loadbasemap();
+        });
+
+    </script>
+</head>
+<body>
+    <div id="container">
+        <div id="viewDiv">
+             
+        </div>
+        <div id="app" style="height: 100px;width:500px;background-color: rgb(162, 201, 235);line-height: 100px;position: absolute;z-index: 1;right:0px;top:0px">
+            <input type="text" :value='searchTxt' style="margin-left: 20px;">
+            <button id="searchBtn" @click='querybeerhander' style='margin-left:10px'>Find The Beer</button>
+            <button id="clearBtn" @click='cleariconhander' style='margin-left:10px'>clear</button>
+        </div> 
+    </div>  
+</body>
+<!-- vue script here -->
+<script>
+    var cp = {
+        data:{
+            searchTxt:'deep'
+        },
+        methods:{
+            cleariconhander:function(){
+                require(['esri/geometry/Extent'],function(Extent){                 
+                    view.extent = new Extent(mapInfo.initExtent);
+                });
+                graphic_layer.removeAll();
+                this.collection = [];
+            },
+            querybeerhander:function (condition) {   
+                
+                var arr = [];
+                require(["esri/tasks/QueryTask", "esri/tasks/support/Query",'esri/layers/GraphicsLayer','esri/Graphic','esri/symbols/SimpleMarkerSymbol','esri/geometry/Extent'],
+                function (QueryTask,Query,GraphicsLayer,Graphic,SimpleMarkerSymbol,Extent) {  
+                    var url = mapInfo.NzBreweryMapUrl;
+                    var searchOpt = "UPPER(Brewery) like UPPER('%"+controlPanelControler.searchTxt+"%')";
+                    var queryTask = new QueryTask({
+                        url: url
+                    });
+
+                    var query = new Query();
+                    query.returnGeometry = true;
+                    query.outFields = ["*"];
+                    query.where = searchOpt; 
+                    queryTask.execute(query).then(function(results){
+                        graphic_layer.removeAll();
+                        var val = results.features[0];
+                        var symbol_ = mapInfo.symbols.identifyedMarkerSymbol;
+                        var gra = new Graphic({
+                            geometry:val.geometry,
+                            symbol:symbol_,
+                            attributes: val.attributes
+                        });             
+                        graphic_layer.graphics.add(gra);             
+                        arr.push(gra);    
+                        view.zoom = mapInfo.mapLvl.zoomed;
+                        view.center = gra.geometry;
+                    });
+                });
+                // this.collection = arr;
+            }
+        }
+    };
+
+    var controlPanelControler = new Vue({
+        el:'#app',
+        data:cp.data,
+        methods:cp.methods
+    })
+</script>
+</html>

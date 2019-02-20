@@ -1,4 +1,0 @@
-I still put app builder website into clude server
-use this link to website:
-https://132.232.92.4:3344/webappbuilder/apps/2/
-get little bugs on symbol display , I still woking on it.
