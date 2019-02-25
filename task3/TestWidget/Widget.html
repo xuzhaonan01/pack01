@@ -1,0 +1,28 @@
+<div>
+	<!-- <div data-dojo-attach-point="filterListNode"></div> -->
+	<div id='app' style="font-size: 15px">
+        <div id="searchDiv">
+            <p style="font:15px solid;color: black">search by Brewery Name</p>
+            <input id="searchInput" style="width:200px"  value="Brewery">
+            <button id="searchBtn">Find</button>
+        </div>
+        <div id='list' style="height:400px;width:100%;background-color: rgb(230, 219, 219)">
+            <ol style="margin-left: -40px;margin-top:0px;height:380px">
+                <li v-bind:style="item" v-bind:class="idx%2==0?signal:double" v-for="(ele,idx) in collection" v-if="collection.length != 0 && idx >= (page.current - 1)* page.perpagecount && idx < page.current * page.perpagecount " @click='locateposition($event)' @mouseover='symbolpoint($event)' @mouseout='mouseOutItemHander($event)' >
+                    {{ele.attributes.Brewery}}
+                </li>
+			</ol>
+        </div>
+        <div id="pager">
+            <div style="text-align: center;width:100%">
+                <ol style="font-size: 10px">
+                    <li v-bind:style="pageitem" v-for="idx in page.total" @click='pagejump($event)' @mouseover='mouseOnItemHander($event)' @mouseout='mouseOutItemHander($event)'>{{idx}}</li>
+                </ol>
+                <p style="font-size: 15px;color: black;">page {{page.current}} of {{page.total}}</p>   
+            </div>             
+            <div>
+                <button id="clearBtn" @click='cleariconhander' style="float: right;margin-right:50px">clear map</button> 
+            </div>    
+        </div>
+    </div>
+</div>

@@ -1,0 +1,3 @@
+dear examiner:
+   first, thanks for your suggestions about those tasks.   and this is my first time to use arcgis app builder framework. yea, it is quite similar with flexviewer before, but still have some difference. so if there's any wrong with, could you point it out, thanks.
+   second, I have trying to convert this to ecma6 script , but it seem doesnt work. so I have to keep this with the old framework(vue) to be able to use data binding. so any suggestions, or just return it to original js.
